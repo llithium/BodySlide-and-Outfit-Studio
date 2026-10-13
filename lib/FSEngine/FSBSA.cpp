@@ -31,7 +31,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***** END LICENCE BLOCK *****/
 
 #include "FSBSA.h"
-#ifdef __linux__
+#ifndef _WIN32
 #include <directx/dxgiformat.h>
 #else
 #include <dxgiformat.h>

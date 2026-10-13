@@ -10,11 +10,7 @@ See the included LICENSE file
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glext.h>
-#elif defined(__APPLE__)
-#include <OpenGL/gl.h>
-#include <OpenGL/glu.h>
-#include <OpenGL/glext.h>
-#elif defined(__linux__)
+#elif defined(__APPLE__) || defined(__linux__)
 #include <GL/glew.h>
 #else
 #error Platform OpenGL headers not defined yet!
@@ -24,7 +20,7 @@ extern bool extInitialized;
 extern bool extSupported;
 extern bool extGLISupported;
 
-#ifndef __linux__
+#ifdef _WIN32
 // OpenGL 4.2
 extern PFNGLTEXSTORAGE1DPROC glTexStorage1D;
 extern PFNGLTEXSTORAGE2DPROC glTexStorage2D;

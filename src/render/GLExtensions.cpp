@@ -10,7 +10,7 @@ bool extInitialized = false;
 bool extSupported = true;
 bool extGLISupported = true;
 
-#ifndef __linux__
+#ifdef _WIN32
 // OpenGL 4.2
 PFNGLTEXSTORAGE1DPROC glTexStorage1D = nullptr;
 PFNGLTEXSTORAGE2DPROC glTexStorage2D = nullptr;
@@ -181,7 +181,7 @@ bool IsExtensionSupported(const char* ext) {
 	return false;
 }
 
-#else // __linux__
+#else // macOS and Linux
 
 void InitExtensions() {
 	if (extInitialized)

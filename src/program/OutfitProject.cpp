@@ -4569,7 +4569,7 @@ bool OutfitProject::PrepareRefineMesh(NiShape* shape, UndoStateShape& uss, std::
 		uint16_t mid;
 		float len;
 
-		bool operator<(const EdgeWithMidAndLen &e2) {
+		bool operator<(const EdgeWithMidAndLen &e2) const {
 			return e2.len < len;
 		}
 	};
@@ -6329,7 +6329,7 @@ void OutfitProject::PrepareSymmetrizeVertices(NiShape* shape, UndoStateShape& us
 				Vector3 sum;
 				for (int p : p2s)
 					sum += tuss.addVerts[p].pos;
-				avg += sum / p2s.size();
+				avg += sum / static_cast<float>(p2s.size());
 				++avgcount;
 			}
 			if (p1 == p2)
@@ -6340,7 +6340,7 @@ void OutfitProject::PrepareSymmetrizeVertices(NiShape* shape, UndoStateShape& us
 					Vector3 sum;
 					for (int p : p1s)
 						sum += tuss.addVerts[p].pos;
-					avg += sum / p1s.size();
+					avg += sum / static_cast<float>(p1s.size());
 					++avgcount;
 				}
 				avg /= avgcount;
@@ -6377,7 +6377,7 @@ void OutfitProject::PrepareSymmetrizeVertices(NiShape* shape, UndoStateShape& us
 				Vector3 sum;
 				for (int p : p2s)
 					sum += GetUSliderDiff(tuss.addVerts[p], sd.sliderName);
-				avg = sum / p2s.size();
+				avg = sum / static_cast<float>(p2s.size());
 				++avgcount;
 			}
 			if (p1 == p2)
@@ -6388,7 +6388,7 @@ void OutfitProject::PrepareSymmetrizeVertices(NiShape* shape, UndoStateShape& us
 					Vector3 sum;
 					for (int p : p1s)
 						sum += GetUSliderDiff(tuss.addVerts[p], sd.sliderName);
-					avg += sum / p1s.size();
+					avg += sum / static_cast<float>(p1s.size());
 					++avgcount;
 				}
 				avg /= avgcount;

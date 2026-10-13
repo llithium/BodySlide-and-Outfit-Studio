@@ -3,6 +3,10 @@ BodySlide and Outfit Studio
 
 BodySlide and Outfit Studio, a tool to convert, create, and customize outfits and bodies for The Elder Scrolls, Fallout and Starfield.
 
+## Native macOS fork
+
+This fork provides a downloadable Apple Silicon build and a CrossOver/MO2 setup helper. See the [macOS download and setup guide](README-macOS.md) and the [macOS releases](https://github.com/llithium/BodySlide-and-Outfit-Studio/releases).
+
 [![CMake Release](https://github.com/ousnius/BodySlide-and-Outfit-Studio/actions/workflows/cmake-release.yml/badge.svg)](https://github.com/ousnius/BodySlide-and-Outfit-Studio/actions/workflows/cmake-release.yml)
 
 ## Documentation

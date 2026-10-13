@@ -13,8 +13,95 @@ See the included LICENSE file
 #include <wx/log.h>
 
 #include <cmath>
+#include <cstdint>
+#include <vector>
+
+#ifdef __APPLE__
+#define BCDEC_IMPLEMENTATION
+#include <bcdec/bcdec.h>
+#endif
 
 extern ConfigurationManager Config;
+
+#ifdef __APPLE__
+namespace {
+GLuint LoadBC7ForMac(const gli::texture& texture, GLuint textureID, bool* isSRGB, bool* isSigned) {
+	if ((texture.target() != gli::TARGET_2D && texture.target() != gli::TARGET_CUBE) || texture.layers() != 1)
+		return 0;
+
+	const bool srgb = texture.format() == gli::FORMAT_RGBA_BP_SRGB_BLOCK16;
+	if (isSRGB)
+		*isSRGB = srgb;
+	if (isSigned)
+		*isSigned = false;
+
+	// Preview never needs a full 4K texture. Starting at a smaller mip also
+	// keeps software decompression off the critical path when an outfit opens.
+	size_t firstLevel = 0;
+	while (firstLevel + 1 < texture.levels()
+		   && (texture.extent(firstLevel).x > 2048 || texture.extent(firstLevel).y > 2048))
+		++firstLevel;
+	for (size_t level = firstLevel; level < texture.levels(); ++level) {
+		const auto extent = texture.extent(level);
+		const size_t blocks = ((static_cast<size_t>(extent.x) + 3) / 4) * ((static_cast<size_t>(extent.y) + 3) / 4);
+		if (texture.size(level) < blocks * 16)
+			return 0;
+	}
+
+	while (glGetError() != GL_NO_ERROR) {}
+	const bool newTexture = textureID == 0;
+	if (newTexture)
+		glGenTextures(1, &textureID);
+	const GLenum target = texture.target() == gli::TARGET_CUBE ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
+	glBindTexture(target, textureID);
+	glTexParameteri(target, GL_TEXTURE_BASE_LEVEL, 0);
+	glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, static_cast<GLint>(texture.levels() - firstLevel - 1));
+	glTexParameteri(target, GL_TEXTURE_MIN_FILTER, texture.levels() - firstLevel > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+	glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	GLint unpackAlignment = 4;
+	glGetIntegerv(GL_UNPACK_ALIGNMENT, &unpackAlignment);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	for (size_t face = 0; face < texture.faces(); ++face) {
+		for (size_t level = firstLevel; level < texture.levels(); ++level) {
+			const auto extent = texture.extent(level);
+			const size_t width = static_cast<size_t>(extent.x);
+			const size_t height = static_cast<size_t>(extent.y);
+			const size_t blocksX = (width + 3) / 4;
+			const size_t blocksY = (height + 3) / 4;
+			const auto* source = static_cast<const uint8_t*>(texture.data(0, face, level));
+			std::vector<uint8_t> pixels(width * height * 4);
+			uint8_t blockPixels[4 * 4 * 4];
+			for (size_t by = 0; by < blocksY; ++by) {
+				for (size_t bx = 0; bx < blocksX; ++bx) {
+					bcdec_bc7(source + (by * blocksX + bx) * 16, blockPixels, 4 * 4);
+					for (size_t y = 0; y < 4 && by * 4 + y < height; ++y) {
+						for (size_t x = 0; x < 4 && bx * 4 + x < width; ++x) {
+							const size_t dest = ((by * 4 + y) * width + bx * 4 + x) * 4;
+							const size_t src = (y * 4 + x) * 4;
+							for (size_t channel = 0; channel < 4; ++channel)
+								pixels[dest + channel] = blockPixels[src + channel];
+						}
+					}
+				}
+			}
+			const GLenum imageTarget = target == GL_TEXTURE_CUBE_MAP ? static_cast<GLenum>(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face) : target;
+			glTexImage2D(imageTarget, static_cast<GLint>(level - firstLevel), srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8,
+				static_cast<GLsizei>(width), static_cast<GLsizei>(height), 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+		}
+	}
+	glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignment);
+	if (glGetError() != GL_NO_ERROR) {
+		if (newTexture)
+			glDeleteTextures(1, &textureID);
+		return 0;
+	}
+	return textureID;
+}
+}
+#endif
 
 ResourceLoader::ResourceLoader() {}
 
@@ -171,6 +258,10 @@ bool ResourceLoader::RenameTexture(const std::string& texNameSrc, const std::str
 
 // File extension can be KTX or DDS
 GLuint ResourceLoader::GLI_create_texture(gli::texture& texture, GLuint textureID, bool* isSRGB, bool* isSigned) {
+#ifdef __APPLE__
+	if (texture.format() == gli::FORMAT_RGBA_BP_UNORM_BLOCK16 || texture.format() == gli::FORMAT_RGBA_BP_SRGB_BLOCK16)
+		return LoadBC7ForMac(texture, textureID, isSRGB, isSigned);
+#endif
 	if (!extGLISupported) {
 		if (!extChecked) {
 			wxLogWarning("OpenGL features required for GLI_create_texture to work aren't there!");
