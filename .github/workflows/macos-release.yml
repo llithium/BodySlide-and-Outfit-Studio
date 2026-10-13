@@ -39,7 +39,7 @@ jobs:
             --app 'dist/BodySlide-macOS-arm64/BodySlide macOS.app'
           python3 scripts/verify_macos_package.py dist/BodySlide-macOS-arm64
           ditto -c -k --sequesterRsrc --keepParent dist/BodySlide-macOS-arm64 dist/BodySlide-macOS-arm64.zip
-          shasum -a 256 dist/BodySlide-macOS-arm64.zip > dist/BodySlide-macOS-arm64.zip.sha256
+          (cd dist && shasum -a 256 BodySlide-macOS-arm64.zip > BodySlide-macOS-arm64.zip.sha256)
 
       - name: Upload build
         uses: actions/upload-artifact@v7
