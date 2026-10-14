@@ -590,12 +590,12 @@ bool OutfitStudio::OnInit() {
 	std::string dataDir{wxFileName(wxStandardPaths::Get().GetExecutablePath()).GetPath().ToUTF8()};
 #endif
 
-	Config.LoadConfig(dataDir + "/Config.xml");
-	OutfitStudioConfig.LoadConfig(dataDir + "/OutfitStudio.xml", "OutfitStudioConfig");
+	Config.LoadConfig(PlatformUtil::GetUserSettingsPath(dataDir, "Config.xml"));
+	OutfitStudioConfig.LoadConfig(PlatformUtil::GetUserSettingsPath(dataDir, "OutfitStudio.xml"), "OutfitStudioConfig");
 
 	Config.SetDefaultValue("AppDir", dataDir);
 
-	logger.Initialize(Config.GetIntValue("LogLevel", 2), dataDir + "/Log_OS.txt");
+	logger.Initialize(Config.GetIntValue("LogLevel", 2), PlatformUtil::GetUserSettingsPath(dataDir, "Log_OS.txt"));
 	wxLogMessage("Initializing Outfit Studio...");
 
 #ifdef NDEBUG
@@ -716,14 +716,14 @@ bool OutfitStudio::OnInit() {
 					answer = wxYES;
 					if (result == wxID_YES + 100) {
 						OutfitStudioConfig.SetValue("SingleInstanceBehavior", 1);
-						OutfitStudioConfig.SaveConfig(Config["AppDir"] + "/OutfitStudio.xml", "OutfitStudioConfig");
+						OutfitStudioConfig.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "OutfitStudio.xml"), "OutfitStudioConfig");
 					}
 				}
 				else {
 					answer = wxNO;
 					if (result == wxID_NO + 100) {
 						OutfitStudioConfig.SetValue("SingleInstanceBehavior", 2);
-						OutfitStudioConfig.SaveConfig(Config["AppDir"] + "/OutfitStudio.xml", "OutfitStudioConfig");
+						OutfitStudioConfig.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "OutfitStudio.xml"), "OutfitStudioConfig");
 					}
 				}
 			}
@@ -1209,7 +1209,7 @@ bool OutfitStudio::ShowSetup() {
 			Config.SetValue("GameDataPath", dataDir.GetFullPath().ToUTF8().data());
 			Config.SetValue("GameDataPaths/" + GameUtil::TargetGames[targ].ToStdString(), dataDir.GetFullPath().ToUTF8().data());
 
-			Config.SaveConfig(Config["AppDir"] + "/Config.xml");
+			Config.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "Config.xml"));
 			delete setup;
 		}
 		else {
@@ -1729,13 +1729,13 @@ void OutfitStudioFrame::OnClose(wxCloseEvent& WXUNUSED(event)) {
 	// changed by another process via the "Yes (always)" / "No (never)" dialog.
 	{
 		ConfigurationManager diskConfig;
-		std::string configPath = Config["AppDir"] + "/OutfitStudio.xml";
+		std::string configPath = PlatformUtil::GetUserSettingsPath(Config["AppDir"], "OutfitStudio.xml");
 		diskConfig.LoadConfig(configPath, "OutfitStudioConfig");
 		if (diskConfig.Exists("SingleInstanceBehavior"))
 			OutfitStudioConfig.SetValue("SingleInstanceBehavior", diskConfig.GetIntValue("SingleInstanceBehavior"));
 	}
 
-	int ret = OutfitStudioConfig.SaveConfig(Config["AppDir"] + "/OutfitStudio.xml", "OutfitStudioConfig");
+	int ret = OutfitStudioConfig.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "OutfitStudio.xml"), "OutfitStudioConfig");
 	if (ret)
 		wxLogWarning("Failed to save configuration (%d)!", ret);
 
@@ -2371,7 +2371,7 @@ void OutfitStudioFrame::OnSettings(wxCommandEvent& WXUNUSED(event)) {
 				needsRestart);
 
 			OutfitStudioConfig.SetValue("SingleInstanceBehavior", choiceSingleInstanceBehavior->GetSelection());
-			OutfitStudioConfig.SaveConfig(Config["AppDir"] + "/OutfitStudio.xml", "OutfitStudioConfig");
+			OutfitStudioConfig.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "OutfitStudio.xml"), "OutfitStudioConfig");
 
 			// Apply colors to GL view (SaveCommonSettingsDialog already saved them to config)
 			if (glView) {
@@ -2404,7 +2404,7 @@ void OutfitStudioFrame::OnSettings(wxCommandEvent& WXUNUSED(event)) {
 				glView->Render();
 			}
 
-			Config.SaveConfig(Config["AppDir"] + "/Config.xml");
+			Config.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "Config.xml"));
 		GameUtil::InitArchives();
 
 			// The browser refers to the archives that were just reloaded
@@ -7898,7 +7898,7 @@ void OutfitStudioFrame::OnSaveLights(wxCommandEvent& event) {
 	// Make sure the current slider values are in the configuration before writing it out
 	OnUpdateLights(event);
 
-	int ret = Config.SaveConfig(Config["AppDir"] + "/Config.xml");
+	int ret = Config.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "Config.xml"));
 	if (ret)
 		wxLogWarning("Failed to save configuration (%d)!", ret);
 }
@@ -7952,7 +7952,7 @@ bool OutfitStudioFrame::SetHDRiBackground(const std::string& fileName, const boo
 	if (remember) {
 		Config.SetValue("Rendering/HDRIBackground", fileName);
 
-		int ret = Config.SaveConfig(Config["AppDir"] + "/Config.xml");
+		int ret = Config.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "Config.xml"));
 		if (ret)
 			wxLogWarning("Failed to save configuration (%d)!", ret);
 	}

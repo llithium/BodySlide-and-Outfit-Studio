@@ -157,7 +157,10 @@ def configure(app: Path, profile: Path, game_data: Path, output_mod: Path | None
     roots, files = replace_view(projects, lambda staging: link_profile_projects(profile, staging))
     links = replace_view(data_view, lambda staging: link_game_data(profile, game_data, staging))
 
-    config = app / "Contents/MacOS/Config.xml"
+    settings = app.parent / "BodySlide macOS Settings"
+    if not settings.is_dir():
+        settings = app / "Contents/MacOS"  # Earlier releases kept settings inside the app.
+    config = settings / "Config.xml"
     backup_dir = app.parent / "BodySlide macOS Backups" / datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     backup_dir.mkdir(parents=True)
     shutil.copy2(config, backup_dir / "Config.xml")
@@ -179,15 +182,13 @@ def configure(app: Path, profile: Path, game_data: Path, output_mod: Path | None
     os.replace(temporary_config, config)
     if connected_mod:
         state = connected_mod / "CalienteTools/BodySlide"
-        macos = app / "Contents/MacOS"
         for name in ("BodySlide.xml", "BuildSelection.xml"):
             if (state / name).is_file():
                 shutil.copy2(state / name, backup_dir / f"MO2-{name}")
-            bind_state_file(macos / name, state / name, backup_dir / name)
+            bind_state_file(settings / name, state / name, backup_dir / name)
     else:
-        macos = app / "Contents/MacOS"
         for name in ("BodySlide.xml", "BuildSelection.xml"):
-            unbind_state_file(macos / name, backup_dir / name)
+            unbind_state_file(settings / name, backup_dir / name)
     print(f"Connected {profile.parent.name} to BodySlide and Outfit Studio.")
     print(f"Found {files} project files from {roots} mods and linked {links} game files.")
     print(f"Build choices and meshes use {output}" if connected_mod else f"Built meshes will go to {output}")

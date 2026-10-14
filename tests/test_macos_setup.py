@@ -38,22 +38,24 @@ class MO2SetupTest(unittest.TestCase):
             macos = app / "Contents/MacOS"
             macos.mkdir(parents=True)
             (macos / "BodySlide").touch()
-            (macos / "Config.xml").write_bytes((Path(__file__).resolve().parents[1] / "Config.xml").read_bytes())
-            (macos / "BuildSelection.xml").write_text("<BuildSelection/>")
-            (macos / "BodySlide.xml").write_text("<BodySlideConfig/>")
+            settings = root / "BodySlide macOS Settings"
+            settings.mkdir()
+            (settings / "Config.xml").write_bytes((Path(__file__).resolve().parents[1] / "Config.xml").read_bytes())
+            (settings / "BuildSelection.xml").write_text("<BuildSelection/>")
+            (settings / "BodySlide.xml").write_text("<BodySlideConfig/>")
             studio = root / "Outfit Studio macOS.app/Contents/MacOS"
             studio.mkdir(parents=True)
             (studio / "OutfitStudio").touch()
 
             configure(app, profile, game_data)
 
-            self.assertEqual((macos / "BuildSelection.xml").resolve(), (state / "BuildSelection.xml").resolve())
-            self.assertEqual((macos / "BodySlide.xml").resolve(), (state / "BodySlide.xml").resolve())
-            self.assertEqual(len(ET.parse(macos / "BuildSelection.xml").getroot()), 2)
+            self.assertEqual((settings / "BuildSelection.xml").resolve(), (state / "BuildSelection.xml").resolve())
+            self.assertEqual((settings / "BodySlide.xml").resolve(), (state / "BodySlide.xml").resolve())
+            self.assertEqual(len(ET.parse(settings / "BuildSelection.xml").getroot()), 2)
             backup = next((root / "BodySlide macOS Backups").iterdir())
             self.assertEqual((backup / "MO2-BuildSelection.xml").read_bytes(), (state / "BuildSelection.xml").read_bytes())
             self.assertEqual((backup / "MO2-BodySlide.xml").read_bytes(), (state / "BodySlide.xml").read_bytes())
-            config = ET.parse(macos / "Config.xml").getroot()
+            config = ET.parse(settings / "Config.xml").getroot()
             self.assertEqual(Path(config.findtext("OutputDataPath").rstrip("/")), mo2)
             project_view = root / "BodySlide macOS Projects/SliderSets/Test.osp"
             self.assertEqual(project_view.resolve(), project.resolve())
@@ -61,10 +63,10 @@ class MO2SetupTest(unittest.TestCase):
             choices = (state / "BuildSelection.xml").read_bytes()
             profile.write_text("-Bodyslide Output\n+Outfit Mod\n")
             configure(app, profile, game_data)
-            self.assertFalse((macos / "BuildSelection.xml").is_symlink())
-            self.assertFalse((macos / "BodySlide.xml").is_symlink())
+            self.assertFalse((settings / "BuildSelection.xml").is_symlink())
+            self.assertFalse((settings / "BodySlide.xml").is_symlink())
             self.assertEqual((state / "BuildSelection.xml").read_bytes(), choices)
-            fallback_config = ET.parse(macos / "Config.xml").getroot()
+            fallback_config = ET.parse(settings / "Config.xml").getroot()
             self.assertEqual(
                 Path(fallback_config.findtext("OutputDataPath").rstrip("/")),
                 root / "BodySlide macOS Output",

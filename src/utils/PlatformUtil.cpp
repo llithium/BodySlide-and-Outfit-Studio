@@ -5,6 +5,8 @@ See the included LICENSE file
 
 #include "PlatformUtil.h"
 
+#include <filesystem>
+
 namespace {
 std::string backslash_to_slash(const std::string& s) {
 	std::string sc(s);
@@ -59,6 +61,17 @@ bool FileExists(const std::string& fileName) {
 		return false;
 
 	return true;
+}
+
+std::string GetUserSettingsPath(const std::string& appDir, const std::string& fileName) {
+	std::filesystem::path directory(appDir);
+#ifdef __APPLE__
+	if (directory.filename() == "MacOS" && directory.parent_path().filename() == "Contents" &&
+		directory.parent_path().parent_path().extension() == ".app") {
+		return (directory.parent_path().parent_path().parent_path() / "BodySlide macOS Settings" / fileName).string();
+	}
+#endif
+	return (directory / fileName).string();
 }
 
 // Provide std::wstring function for Windows

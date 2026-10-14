@@ -138,12 +138,12 @@ bool BodySlideApp::OnInit() {
 	std::string dataDir{wxFileName(wxStandardPaths::Get().GetExecutablePath()).GetPath().ToUTF8()};
 #endif
 
-	Config.LoadConfig(dataDir + "/Config.xml");
-	BodySlideConfig.LoadConfig(dataDir + "/BodySlide.xml", "BodySlideConfig");
+	Config.LoadConfig(PlatformUtil::GetUserSettingsPath(dataDir, "Config.xml"));
+	BodySlideConfig.LoadConfig(PlatformUtil::GetUserSettingsPath(dataDir, "BodySlide.xml"), "BodySlideConfig");
 
 	Config.SetDefaultValue("AppDir", dataDir);
 
-	logger.Initialize(Config.GetIntValue("LogLevel", 2), dataDir + "/Log_BS.txt");
+	logger.Initialize(Config.GetIntValue("LogLevel", 2), PlatformUtil::GetUserSettingsPath(dataDir, "Log_BS.txt"));
 	wxLogMessage("Initializing BodySlide...");
 
 #ifdef NDEBUG
@@ -1194,7 +1194,7 @@ void BodySlideApp::DisplayActiveSet() {
 }
 
 void BodySlideApp::GetBuildSelection(BuildSelectionFile& file, BuildSelection& buildSel) {
-	const std::string buildSelFileName = Config["AppDir"] + PathSepStr + "BuildSelection.xml";
+	const std::string buildSelFileName = PlatformUtil::GetUserSettingsPath(Config["AppDir"], "BuildSelection.xml");
 
 	file.Open(buildSelFileName);
 
@@ -3733,7 +3733,7 @@ bool BodySlideApp::ShowSetup() {
 			Config.SetValue("GameDataPath", dataDir.GetFullPath().ToUTF8().data());
 			Config.SetValue("GameDataPaths/" + GameUtil::TargetGames[targ].ToStdString(), dataDir.GetFullPath().ToUTF8().data());
 
-			Config.SaveConfig(Config["AppDir"] + "/Config.xml");
+			Config.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "Config.xml"));
 			delete setup;
 		}
 		else {
@@ -6338,7 +6338,7 @@ void BodySlideFrame::OnClose(wxCloseEvent& WXUNUSED(event)) {
 
 	app->SaveFavorites();
 
-	int ret = BodySlideConfig.SaveConfig(Config["AppDir"] + "/BodySlide.xml", "BodySlideConfig");
+	int ret = BodySlideConfig.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "BodySlide.xml"), "BodySlideConfig");
 	if (ret)
 		wxLogWarning("Failed to save configuration (%d)!", ret);
 
@@ -7552,7 +7552,7 @@ void BodySlideFrame::OnSettings(wxCommandEvent& WXUNUSED(event)) {
 			// This one picks the shader files, so it rebuilds the preview meshes when it changed
 			app->ApplyPBRSetting();
 
-			Config.SaveConfig(Config["AppDir"] + "/Config.xml");
+			Config.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "Config.xml"));
 			app->SaveFavorites();
 			// Poses and animations are made for one game's skeleton, and the
 			// preview skinning was built on the skeleton loaded before

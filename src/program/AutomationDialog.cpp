@@ -10,6 +10,7 @@ See the included LICENSE file
 #include "PartitionTypeChoices.h"
 
 #include "../files/MaskFile.h"
+#include "../utils/PlatformUtil.h"
 #include "../utils/ProjectUtil.h"
 
 #include <NifFile.hpp>
@@ -693,7 +694,7 @@ AutomationDialog::~AutomationDialog() {
 	// Save last selected automation script
 	wxString name = cmbAutomation ? cmbAutomation->GetValue().Trim().Trim(false) : wxString();
 	OutfitStudioConfig.SetValue("AutomationDialog.lastScript", name.ToUTF8().data());
-	OutfitStudioConfig.SaveConfig(Config["AppDir"] + "/OutfitStudio.xml", "OutfitStudioConfig");
+	OutfitStudioConfig.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "OutfitStudio.xml"), "OutfitStudioConfig");
 
 	wxXmlResource::Get()->Unload(wxString::FromUTF8(Config["AppDir"]) + "/res/xrc/Automation.xrc");
 }

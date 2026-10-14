@@ -26,7 +26,7 @@ PROJECT_DIRS = (
     "PoseData",
 )
 LOOSE_DATA_DIRS = ("textures", "meshes", "materials")
-MACOS_VERSION = "0.2.1"
+MACOS_VERSION = "0.2.2"
 
 
 def linked_libraries(binary: Path) -> list[str]:
@@ -216,11 +216,14 @@ def main() -> int:
     macos.mkdir(parents=True)
     for name in ("BodySlide", "OutfitStudio"):
         shutil.copy2(build / name, macos / name)
-    for name in ("Config.xml", "BodySlide.xml", "OutfitStudio.xml", "BuildSelection.xml", "RefTemplates.xml"):
-        shutil.copy2(repo / name, macos / name)
+    settings = app.parent / "BodySlide macOS Settings"
+    settings.mkdir()
+    for name in ("Config.xml", "BodySlide.xml", "OutfitStudio.xml", "BuildSelection.xml"):
+        shutil.copy2(repo / name, settings / name)
+    shutil.copy2(repo / "RefTemplates.xml", macos / "RefTemplates.xml")
     output = app.parent / f"{app.stem} Output"
     output.mkdir(exist_ok=True)
-    config = macos / "Config.xml"
+    config = settings / "Config.xml"
     tree = ET.parse(config)
     set_config_value(tree.getroot(), "OutputDataPath", str(output) + "/")
     tree.write(config, encoding="utf-8", xml_declaration=True)
@@ -232,13 +235,17 @@ def main() -> int:
     studio_macos = studio_app / "Contents" / "MacOS"
     studio_macos.mkdir(parents=True)
     shutil.copy2(build / "OutfitStudio", studio_macos / "OutfitStudio")
-    shutil.copy2(repo / "OutfitStudio.xml", studio_macos / "OutfitStudio.xml")
-    for name in ("Config.xml", "RefTemplates.xml", "res", "lang"):
+    for name in ("RefTemplates.xml", "res", "lang"):
         source = macos / name
-        (studio_macos / name).symlink_to(os.path.relpath(source, studio_macos))
+        if source.is_dir():
+            shutil.copytree(source, studio_macos / name)
+        else:
+            shutil.copy2(source, studio_macos / name)
     write_info_plist(studio_app, "OutfitStudio", "Outfit Studio macOS", "org.ousnius.outfitstudio.mac-build")
     bundle_libraries(app)
     bundle_libraries(studio_app)
+    for bundle in (app, studio_app):
+        subprocess.run(("codesign", "--force", "--deep", "--sign", "-", str(bundle)), check=True)
     release_scripts = app.parent / "scripts"
     release_scripts.mkdir(exist_ok=True)
     for name in ("package_macos.py", "setup_macos.py"):

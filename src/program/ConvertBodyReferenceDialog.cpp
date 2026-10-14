@@ -9,6 +9,7 @@ See the included LICENSE file
 
 #include "../utils/ConfigDialogUtil.h"
 #include "../utils/ConfigurationManager.h"
+#include "../utils/PlatformUtil.h"
 #include "../utils/ProjectUtil.h"
 
 #include <regex>
@@ -135,7 +136,7 @@ void ConvertBodyReferenceDialog::ConvertBodyReference() const {
 	auto deleteShapesText = ConfigDialogUtil::SetStringFromDialogTextControl(config, (*this), "ConvertBodyReference", "npDeleteShapesText");
 	auto addBonesText = ConfigDialogUtil::SetStringFromDialogTextControl(config, (*this), "ConvertBodyReference", "npAddBonesText");
 
-	Config.SaveConfig(Config["AppDir"] + "/Config.xml");
+	Config.SaveConfig(PlatformUtil::GetUserSettingsPath(Config["AppDir"], "Config.xml"));
 
 	outfitStudio->UpdateProgress(1, _("Updating Project Output Settings"));
 
