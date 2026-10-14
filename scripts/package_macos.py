@@ -24,6 +24,7 @@ PROJECT_DIRS = (
     "PoseData",
 )
 LOOSE_DATA_DIRS = ("textures", "meshes", "materials")
+MACOS_VERSION = "0.2.0"
 
 
 def linked_libraries(binary: Path) -> list[str]:
@@ -125,10 +126,7 @@ def link_profile_projects(modlist: Path, destination: Path) -> tuple[int, int]:
                 if target.exists() or target.is_symlink():
                     continue
                 target.parent.mkdir(parents=True, exist_ok=True)
-                if dirname == "ShapeData":
-                    target.symlink_to(file)
-                else:
-                    shutil.copy2(file, target)
+                target.symlink_to(file)
                 files += 1
     return roots, files
 
@@ -170,7 +168,7 @@ def write_info_plist(app: Path, executable: str, name: str, identifier: str) -> 
         "CFBundleDisplayName": name,
         "CFBundlePackageType": "APPL",
         "CFBundleVersion": "1",
-        "CFBundleShortVersionString": "0.1",
+        "CFBundleShortVersionString": MACOS_VERSION,
         "NSHighResolutionCapable": True,
     }
     with (app / "Contents" / "Info.plist").open("wb") as stream:
@@ -197,12 +195,13 @@ def main() -> int:
         parser.error(f"profile not found: {args.profile}")
     if args.game_data and not args.game_data.is_dir():
         parser.error(f"game data directory not found: {args.game_data}")
+    if bool(args.profile) != bool(args.game_data):
+        parser.error("--profile and --game-data must be provided together")
 
     profile = args.profile.resolve() if args.profile else None
     game_data = args.game_data.resolve() if args.game_data else None
     projects = app.parent / f"{app.stem} Projects"
     data_view = app.parent / f"{app.stem} Data"
-    output = app.parent / f"{app.stem} Output"
     studio_app = app.parent / "Outfit Studio macOS.app"
     if studio_app.exists():
         parser.error(f"destination already exists: {studio_app}")
@@ -217,32 +216,16 @@ def main() -> int:
         shutil.copy2(build / name, macos / name)
     for name in ("Config.xml", "BodySlide.xml", "OutfitStudio.xml", "BuildSelection.xml", "RefTemplates.xml"):
         shutil.copy2(repo / name, macos / name)
+    output = app.parent / f"{app.stem} Output"
+    output.mkdir(exist_ok=True)
+    config = macos / "Config.xml"
+    tree = ET.parse(config)
+    set_config_value(tree.getroot(), "OutputDataPath", str(output) + "/")
+    tree.write(config, encoding="utf-8", xml_declaration=True)
     for name in ("res", "lang"):
         shutil.copytree(repo / name, macos / name)
 
     write_info_plist(app, "BodySlide", "BodySlide macOS", "org.ousnius.bodyslide.mac-build")
-
-    config = macos / "Config.xml"
-    tree = ET.parse(config)
-    root = tree.getroot()
-    if game_data:
-        configured_data = str(game_data).rstrip("/") + "/"
-        if profile:
-            links = link_game_data(profile, game_data, data_view)
-            configured_data = str(data_view) + "/"
-            print(f"Linked {links} game data files into {data_view}")
-        set_config_value(root, "TargetGame", "4")
-        set_config_value(root, "GameDataPath", configured_data)
-        set_config_value(root, "GameDataPaths/SkyrimSpecialEdition", configured_data)
-        set_config_value(root, "Anim/DefaultSkeletonReference", "res/skeleton_female_sse.nif")
-        set_config_value(root, "Anim/SkeletonRootName", "NPC Root [Root]")
-    if profile:
-        roots, files = link_profile_projects(profile, projects)
-        set_config_value(root, "ProjectPath", str(projects))
-        print(f"Prepared {files} project files from {roots} enabled MO2 mods in {projects}")
-    output.mkdir(exist_ok=True)
-    set_config_value(root, "OutputDataPath", str(output) + "/")
-    tree.write(config, encoding="utf-8", xml_declaration=True)
 
     studio_macos = studio_app / "Contents" / "MacOS"
     studio_macos.mkdir(parents=True)
@@ -262,9 +245,13 @@ def main() -> int:
     (app.parent / "Set Up.command").chmod(0o755)
     shutil.copy2(repo / "README-macOS.md", app.parent / "README-macOS.md")
     shutil.copy2(repo / "LICENSE", app.parent / "LICENSE")
+    if profile and game_data:
+        from setup_macos import configure
+        configure(app, profile, game_data)
+    else:
+        print(f"Build output is isolated in {output} until setup is run")
     print(f"Packaged {app}")
     print(f"Packaged {studio_app}")
-    print(f"Build output is isolated in {output}")
     return 0
 
 

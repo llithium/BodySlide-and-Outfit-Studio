@@ -1,9 +1,9 @@
-Native Apple Silicon preview and mesh building for BodySlide and Outfit Studio. This is an independent macOS build of the upstream project.
+Native Apple Silicon BodySlide and Outfit Studio with direct CrossOver/MO2 integration.
 
-Download `BodySlide-macOS-arm64.zip`, extract it to a writable folder, and run **Set Up.command**. The setup finds the selected Skyrim Special Edition MO2 profile in CrossOver and connects the apps to its enabled outfits and textures. Open **BodySlide macOS.app** afterward.
+Download `BodySlide-macOS-arm64.zip`, extract it to a writable folder, and run **Set Up.command**. Setup finds the selected Skyrim Special Edition MO2 profile. It reads enabled projects and textures from MO2 and, when an enabled `Bodyslide Output` mod exists, shares that mod's selected outfit, preset, zap choices, and build choices. Built meshes go directly into the same output mod. Setup saves rollback copies of the choice files and app configuration beside the apps.
 
-The apps contain their runtime libraries; Homebrew and a local build are not needed. The release is ad hoc signed and not Apple notarized. macOS may require opening the apps through **System Settings → Privacy & Security → Open Anyway** on first launch.
+Close Windows BodySlide before opening the native app so they do not write the shared choice files at the same time. Run setup again after changing the selected profile, enabled mods, or priority. If no enabled BodySlide output mod is found, the apps retain a separate review-output folder.
 
-Built meshes are saved in `BodySlide macOS Output` beside the apps. Review them before adding them to MO2. Run setup again after changing the selected MO2 profile or mod order. Keep the CrossOver drive mounted while using the apps.
+The apps contain their runtime libraries; Homebrew and a local build are not needed. This release is ad hoc signed and not Apple notarized, so macOS may require **System Settings → Privacy & Security → Open Anyway** on first launch.
 
 See `README-macOS.md` in the download for details and limitations.

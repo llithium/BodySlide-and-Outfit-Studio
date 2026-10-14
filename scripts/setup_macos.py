@@ -2,13 +2,14 @@
 """Connect the downloaded macOS apps to a CrossOver MO2 profile."""
 
 import argparse
+from datetime import datetime
 import os
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from package_macos import link_game_data, link_profile_projects, set_config_value
+from package_macos import active_mods, link_game_data, link_profile_projects, set_config_value
 
 
 def crossover_bottles() -> list[Path]:
@@ -67,6 +68,52 @@ def game_data_dirs(bottle: Path) -> list[Path]:
     return [path for path in candidates if path.is_dir()]
 
 
+def find_output_mod(profile: Path, requested: Path | None) -> Path | None:
+    enabled = [mod for mod in active_mods(profile) if mod.is_dir()]
+    if requested:
+        match = next((mod for mod in enabled if mod.resolve() == requested.resolve()), None)
+        if match is None:
+            raise ValueError(f"Output mod is not enabled in this profile: {requested}")
+        return match
+    preferred = [mod for mod in enabled if mod.name.casefold().replace(" ", "") == "bodyslideoutput"]
+    if preferred:
+        return preferred[0]
+    with_choices = [
+        mod for mod in enabled
+        if (mod / "CalienteTools/BodySlide/BuildSelection.xml").is_file()
+    ]
+    if len(with_choices) > 1:
+        names = ", ".join(mod.name for mod in with_choices)
+        raise ValueError(f"Several enabled mods contain BodySlide choices ({names}). Use --output-mod.")
+    return with_choices[0] if with_choices else None
+
+
+def bind_state_file(app_file: Path, mo2_file: Path, backup: Path) -> None:
+    if app_file.is_symlink() and app_file.resolve() == mo2_file.resolve():
+        return
+    mo2_file.parent.mkdir(parents=True, exist_ok=True)
+    if not mo2_file.exists():
+        shutil.copy2(app_file, mo2_file)
+    if app_file.exists() or app_file.is_symlink():
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(app_file, backup)
+    replacement = app_file.with_name(app_file.name + ".new-link")
+    replacement.symlink_to(mo2_file)
+    os.replace(replacement, app_file)
+
+
+def unbind_state_file(app_file: Path, backup: Path) -> None:
+    if not app_file.is_symlink():
+        return
+    if not app_file.is_file():
+        raise ValueError(f"Previous MO2 choice file is unavailable: {app_file}")
+    backup.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(app_file, backup)
+    replacement = app_file.with_name(app_file.name + ".local-copy")
+    shutil.copy2(app_file, replacement)
+    os.replace(replacement, app_file)
+
+
 def replace_view(target: Path, build) -> int | tuple[int, int]:
     """Build beside the previous view, then replace it after a successful scan."""
     staging = Path(tempfile.mkdtemp(prefix=f".{target.name}-", dir=target.parent))
@@ -90,7 +137,7 @@ def replace_view(target: Path, build) -> int | tuple[int, int]:
         raise
 
 
-def configure(app: Path, profile: Path, game_data: Path) -> None:
+def configure(app: Path, profile: Path, game_data: Path, output_mod: Path | None = None) -> None:
     if not (app / "Contents/MacOS/BodySlide").is_file():
         raise ValueError(f"BodySlide app is missing: {app}")
     studio = app.parent / "Outfit Studio macOS.app"
@@ -99,11 +146,19 @@ def configure(app: Path, profile: Path, game_data: Path) -> None:
     projects = app.parent / f"{app.stem} Projects"
     data_view = app.parent / f"{app.stem} Data"
     output = app.parent / f"{app.stem} Output"
-    output.mkdir(exist_ok=True)
+    connected_mod = find_output_mod(profile, output_mod)
+    if connected_mod is None:
+        output.mkdir(exist_ok=True)
+        print("No enabled BodySlide output mod found; builds will stay in the separate output folder.")
+    else:
+        output = connected_mod
     roots, files = replace_view(projects, lambda staging: link_profile_projects(profile, staging))
     links = replace_view(data_view, lambda staging: link_game_data(profile, game_data, staging))
 
     config = app / "Contents/MacOS/Config.xml"
+    backup_dir = app.parent / "BodySlide macOS Backups" / datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    backup_dir.mkdir(parents=True)
+    shutil.copy2(config, backup_dir / "Config.xml")
     tree = ET.parse(config)
     root = tree.getroot()
     values = {
@@ -120,9 +175,20 @@ def configure(app: Path, profile: Path, game_data: Path) -> None:
     temporary_config = config.with_suffix(".xml.tmp")
     tree.write(temporary_config, encoding="utf-8", xml_declaration=True)
     os.replace(temporary_config, config)
+    if connected_mod:
+        state = connected_mod / "CalienteTools/BodySlide"
+        macos = app / "Contents/MacOS"
+        for name in ("BodySlide.xml", "BuildSelection.xml"):
+            if (state / name).is_file():
+                shutil.copy2(state / name, backup_dir / f"MO2-{name}")
+            bind_state_file(macos / name, state / name, backup_dir / name)
+    else:
+        macos = app / "Contents/MacOS"
+        for name in ("BodySlide.xml", "BuildSelection.xml"):
+            unbind_state_file(macos / name, backup_dir / name)
     print(f"Connected {profile.parent.name} to BodySlide and Outfit Studio.")
     print(f"Found {files} project files from {roots} mods and linked {links} game files.")
-    print(f"Built meshes will go to {output}")
+    print(f"Build choices and meshes use {output}" if connected_mod else f"Built meshes will go to {output}")
 
 
 def main() -> int:
@@ -130,6 +196,7 @@ def main() -> int:
     parser.add_argument("--app", type=Path, default=Path(__file__).resolve().parents[1] / "BodySlide macOS.app")
     parser.add_argument("--profile", type=Path, help="MO2 profile modlist.txt")
     parser.add_argument("--game-data", type=Path, help="Skyrim Special Edition Data folder")
+    parser.add_argument("--output-mod", type=Path, help="Enabled MO2 mod to hold build choices and meshes")
     args = parser.parse_args()
     profiles = find_profiles() if not args.profile else []
     selected = [item[0] for item in profiles if item[2]]
@@ -142,7 +209,7 @@ def main() -> int:
     game_data = args.game_data or choose(game_data_dirs(bottle) if bottle else [], "Skyrim Special Edition Data folder")
     if not game_data.is_dir():
         parser.error(f"game data not found: {game_data}")
-    configure(args.app.resolve(), profile.resolve(), game_data.resolve())
+    configure(args.app.resolve(), profile.resolve(), game_data.resolve(), args.output_mod)
     return 0
 
 

@@ -1328,6 +1328,8 @@ void BodySlideApp::SetZapChoice(const std::string& zap, bool choice) {
 	GetBuildSelection(buildSelFile, buildSelection);
 
 	std::string project = GetActiveSet().GetName();
+	if (buildSelection.HasZapChoice(project, zap) && buildSelection.GetZapChoice(project, zap) == choice)
+		return;
 
 	buildSelection.SetZapChoice(project, zap, choice);
 	buildSelFile.UpdateZapChoices(buildSelection);
