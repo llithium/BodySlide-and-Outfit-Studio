@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Connect the downloaded macOS apps to a CrossOver MO2 profile."""
 
+from __future__ import annotations
+
 import argparse
 from datetime import datetime
 import os

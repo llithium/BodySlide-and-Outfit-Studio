@@ -26,6 +26,11 @@ jobs:
       - name: Fetch large resources
         run: git lfs pull
 
+      - name: Test setup with macOS system Python
+        run: |
+          /usr/bin/python3 --version
+          /usr/bin/python3 -m unittest discover -s tests -p test_macos_setup.py -v
+
       - name: Build
         run: |
           cmake -S . -B build/macos -G Ninja -DCMAKE_BUILD_TYPE=Release \

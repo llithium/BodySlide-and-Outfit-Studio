@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Package local macOS binaries and, optionally, a read-through MO2 project view."""
 
+from __future__ import annotations
+
 import argparse
 import os
 import plistlib
@@ -24,7 +26,7 @@ PROJECT_DIRS = (
     "PoseData",
 )
 LOOSE_DATA_DIRS = ("textures", "meshes", "materials")
-MACOS_VERSION = "0.2.0"
+MACOS_VERSION = "0.2.1"
 
 
 def linked_libraries(binary: Path) -> list[str]:
