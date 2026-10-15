@@ -26,7 +26,7 @@ PROJECT_DIRS = (
     "PoseData",
 )
 LOOSE_DATA_DIRS = ("textures", "meshes", "materials")
-MACOS_VERSION = "0.2.2"
+MACOS_VERSION = "0.2.3"
 
 
 def linked_libraries(binary: Path) -> list[str]:

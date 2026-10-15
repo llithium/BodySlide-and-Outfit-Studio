@@ -139,7 +139,13 @@ def replace_view(target: Path, build) -> int | tuple[int, int]:
         raise
 
 
-def configure(app: Path, profile: Path, game_data: Path, output_mod: Path | None = None) -> None:
+def configure(
+    app: Path,
+    profile: Path,
+    game_data: Path,
+    output_mod: Path | None = None,
+    settings_dir: Path | None = None,
+) -> None:
     if not (app / "Contents/MacOS/BodySlide").is_file():
         raise ValueError(f"BodySlide app is missing: {app}")
     studio = app.parent / "Outfit Studio macOS.app"
@@ -157,9 +163,17 @@ def configure(app: Path, profile: Path, game_data: Path, output_mod: Path | None
     roots, files = replace_view(projects, lambda staging: link_profile_projects(profile, staging))
     links = replace_view(data_view, lambda staging: link_game_data(profile, game_data, staging))
 
-    settings = app.parent / "BodySlide macOS Settings"
-    if not settings.is_dir():
-        settings = app / "Contents/MacOS"  # Earlier releases kept settings inside the app.
+    packaged_settings = app.parent / "BodySlide macOS Settings"
+    if not packaged_settings.is_dir():
+        packaged_settings = app / "Contents/MacOS"  # Earlier releases kept settings inside the app.
+    settings = settings_dir or Path.home() / "Library/Application Support/BodySlide macOS"
+    settings.mkdir(parents=True, exist_ok=True)
+    for name in ("Config.xml", "BodySlide.xml", "OutfitStudio.xml", "BuildSelection.xml"):
+        destination = settings / name
+        if not destination.exists() and not destination.is_symlink():
+            source = packaged_settings / name
+            if source.is_file():
+                shutil.copy2(source, destination)
     config = settings / "Config.xml"
     backup_dir = app.parent / "BodySlide macOS Backups" / datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     backup_dir.mkdir(parents=True)

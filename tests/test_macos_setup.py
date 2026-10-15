@@ -38,19 +38,21 @@ class MO2SetupTest(unittest.TestCase):
             macos = app / "Contents/MacOS"
             macos.mkdir(parents=True)
             (macos / "BodySlide").touch()
-            settings = root / "BodySlide macOS Settings"
-            settings.mkdir()
-            (settings / "Config.xml").write_bytes((Path(__file__).resolve().parents[1] / "Config.xml").read_bytes())
-            (settings / "BuildSelection.xml").write_text("<BuildSelection/>")
-            (settings / "BodySlide.xml").write_text("<BodySlideConfig/>")
+            packaged_settings = root / "BodySlide macOS Settings"
+            packaged_settings.mkdir()
+            (packaged_settings / "Config.xml").write_bytes((Path(__file__).resolve().parents[1] / "Config.xml").read_bytes())
+            (packaged_settings / "BuildSelection.xml").write_text("<BuildSelection/>")
+            (packaged_settings / "BodySlide.xml").write_text("<BodySlideConfig/>")
+            settings = root / "Library/Application Support/BodySlide macOS"
             studio = root / "Outfit Studio macOS.app/Contents/MacOS"
             studio.mkdir(parents=True)
             (studio / "OutfitStudio").touch()
 
-            configure(app, profile, game_data)
+            configure(app, profile, game_data, settings_dir=settings)
 
             self.assertEqual((settings / "BuildSelection.xml").resolve(), (state / "BuildSelection.xml").resolve())
             self.assertEqual((settings / "BodySlide.xml").resolve(), (state / "BodySlide.xml").resolve())
+            self.assertFalse((packaged_settings / "BodySlide.xml").is_symlink())
             self.assertEqual(len(ET.parse(settings / "BuildSelection.xml").getroot()), 2)
             backup = next((root / "BodySlide macOS Backups").iterdir())
             self.assertEqual((backup / "MO2-BuildSelection.xml").read_bytes(), (state / "BuildSelection.xml").read_bytes())
@@ -62,7 +64,7 @@ class MO2SetupTest(unittest.TestCase):
 
             choices = (state / "BuildSelection.xml").read_bytes()
             profile.write_text("-Bodyslide Output\n+Outfit Mod\n")
-            configure(app, profile, game_data)
+            configure(app, profile, game_data, settings_dir=settings)
             self.assertFalse((settings / "BuildSelection.xml").is_symlink())
             self.assertFalse((settings / "BodySlide.xml").is_symlink())
             self.assertEqual((state / "BuildSelection.xml").read_bytes(), choices)
