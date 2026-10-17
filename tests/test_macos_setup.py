@@ -46,7 +46,11 @@ class MO2SetupTest(unittest.TestCase):
             (macos / "BodySlide").touch()
             packaged_settings = root / "BodySlide macOS Settings"
             packaged_settings.mkdir()
-            (packaged_settings / "Config.xml").write_bytes((Path(__file__).resolve().parents[1] / "Config.xml").read_bytes())
+            config_path = packaged_settings / "Config.xml"
+            config_path.write_bytes((Path(__file__).resolve().parents[1] / "Config.xml").read_bytes())
+            config_tree = ET.parse(config_path)
+            ET.SubElement(config_tree.getroot(), "BatchBuildSelectionGroup").text = "BuildSelection - Selected"
+            config_tree.write(config_path)
             (packaged_settings / "BuildSelection.xml").write_text("<BuildSelection/>")
             (packaged_settings / "BodySlide.xml").write_text("<BodySlideConfig/>")
             settings = root / "Library/Application Support/BodySlide macOS"
@@ -65,9 +69,13 @@ class MO2SetupTest(unittest.TestCase):
             self.assertEqual((backup / "MO2-BodySlide.xml").read_bytes(), (state / "BodySlide.xml").read_bytes())
             config = ET.parse(settings / "Config.xml").getroot()
             self.assertEqual(Path(config.findtext("OutputDataPath").rstrip("/")), mo2)
-            self.assertEqual(config.findtext("BatchBuildSelectionGroup"), "BuildSelection - Selected")
+            self.assertIsNone(config.find("BatchBuildSelectionGroup"))
             project_view = root / "BodySlide macOS Projects/SliderSets/Test.osp"
             self.assertEqual(project_view.resolve(), project.resolve())
+            self.assertEqual(
+                (root / "BodySlide macOS Projects/SliderGroups/BuildSelection_Selected_Group.xml").resolve(),
+                selected_group.resolve(),
+            )
 
             choices = (state / "BuildSelection.xml").read_bytes()
             profile.write_text("-Bodyslide Output\n+Outfit Mod\n")
@@ -80,7 +88,7 @@ class MO2SetupTest(unittest.TestCase):
                 Path(fallback_config.findtext("OutputDataPath").rstrip("/")),
                 root / "BodySlide macOS Output",
             )
-            self.assertEqual(fallback_config.findtext("BatchBuildSelectionGroup"), "")
+            self.assertIsNone(fallback_config.find("BatchBuildSelectionGroup"))
 
 
 if __name__ == "__main__":

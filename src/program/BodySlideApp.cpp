@@ -1204,11 +1204,6 @@ void BodySlideApp::GetBuildSelection(BuildSelectionFile& file, BuildSelection& b
 	file.Get(buildSel);
 }
 
-bool BodySlideApp::GetSavedBatchBuildSelection(std::unordered_set<std::string>& outfits) {
-	const std::string group = Config["BatchBuildSelectionGroup"];
-	return !group.empty() && gCollection.GetGroupMembers(group, outfits) > 0;
-}
-
 void BodySlideApp::UpdateConflictManager() {
 	if (projects.empty())
 		return;
@@ -7315,10 +7310,8 @@ void BodySlideFrame::OnBatchBuild(wxCommandEvent& WXUNUSED(event)) {
 
 	batchBuildList->Append(oChoices);
 
-	std::unordered_set<std::string> savedBuilds;
-	const bool useSavedBuilds = app->GetSavedBatchBuildSelection(savedBuilds);
 	for (uint32_t i = 0; i < oChoices.size(); i++)
-		batchBuildList->Check(i, !useSavedBuilds || savedBuilds.count(outfitChoices[i]) > 0);
+		batchBuildList->Check(i);
 
 	for (auto& outFile : app->outFileCount) {
 		if (outFile.second.size() > 1) {
@@ -7398,7 +7391,7 @@ void BodySlideFrame::OnBatchBuildContext(wxMouseEvent& WXUNUSED(event)) {
 	wxMenu* menu = wxXmlResource::Get()->LoadMenu("batchBuildContext");
 	if (menu) {
 		menu->Bind(wxEVT_MENU, &BodySlideFrame::OnBatchBuildSelect, this);
-		PopupMenu(menu);
+		batchBuildList->PopupMenu(menu);
 		delete menu;
 	}
 }
