@@ -29,6 +29,12 @@ class MO2SetupTest(unittest.TestCase):
             (state / "BodySlide.xml").write_text(
                 "<BodySlideConfig><SelectedOutfit>Test</SelectedOutfit></BodySlideConfig>"
             )
+            selected_group = state / "SliderGroups/BuildSelection_Selected_Group.xml"
+            selected_group.parent.mkdir(parents=True)
+            selected_group.write_text(
+                '<SliderGroups><Group name="BuildSelection - Selected">'
+                '<Member name="Test"/></Group></SliderGroups>'
+            )
             project = instance / "mods/Outfit Mod/CalienteTools/BodySlide/SliderSets/Test.osp"
             project.parent.mkdir(parents=True)
             project.write_text("<SliderSetInfo/>")
@@ -59,6 +65,7 @@ class MO2SetupTest(unittest.TestCase):
             self.assertEqual((backup / "MO2-BodySlide.xml").read_bytes(), (state / "BodySlide.xml").read_bytes())
             config = ET.parse(settings / "Config.xml").getroot()
             self.assertEqual(Path(config.findtext("OutputDataPath").rstrip("/")), mo2)
+            self.assertEqual(config.findtext("BatchBuildSelectionGroup"), "BuildSelection - Selected")
             project_view = root / "BodySlide macOS Projects/SliderSets/Test.osp"
             self.assertEqual(project_view.resolve(), project.resolve())
 
@@ -73,6 +80,7 @@ class MO2SetupTest(unittest.TestCase):
                 Path(fallback_config.findtext("OutputDataPath").rstrip("/")),
                 root / "BodySlide macOS Output",
             )
+            self.assertEqual(fallback_config.findtext("BatchBuildSelectionGroup"), "")
 
 
 if __name__ == "__main__":

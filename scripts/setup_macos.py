@@ -191,6 +191,16 @@ def configure(
     }
     for key, value in values.items():
         set_config_value(root, key, value)
+    selected_group_file = projects / "SliderGroups/BuildSelection_Selected_Group.xml"
+    selected_group = ""
+    if connected_mod and selected_group_file.is_file():
+        group = ET.parse(selected_group_file).find(".//Group[@name='BuildSelection - Selected']")
+        if group is not None:
+            selected_group = "BuildSelection - Selected"
+    group_setting = root.find("BatchBuildSelectionGroup")
+    if group_setting is None:
+        group_setting = ET.SubElement(root, "BatchBuildSelectionGroup")
+    group_setting.text = selected_group
     temporary_config = config.with_suffix(".xml.tmp")
     tree.write(temporary_config, encoding="utf-8", xml_declaration=True)
     os.replace(temporary_config, config)

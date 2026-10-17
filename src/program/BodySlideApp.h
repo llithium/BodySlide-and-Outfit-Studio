@@ -338,6 +338,7 @@ public:
 	void DisplayActiveSet();
 
 	void GetBuildSelection(BuildSelectionFile& file, BuildSelection& buildSel);
+	bool GetSavedBatchBuildSelection(std::unordered_set<std::string>& outfits);
 
 	void UpdateConflictManager();
 	void SetDefaultBuildSelection();

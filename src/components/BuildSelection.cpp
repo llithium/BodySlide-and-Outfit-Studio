@@ -5,6 +5,7 @@ See the included LICENSE file
 
 #include "BuildSelection.h"
 #include "../utils/PlatformUtil.h"
+#include "../utils/StringStuff.h"
 
 
 int BuildSelection::LoadBuildSelection(XMLElement* srcElement) {
@@ -18,7 +19,7 @@ int BuildSelection::LoadBuildSelection(XMLElement* srcElement) {
 			continue;
 		}
 
-		std::string sName = elem->Attribute("path");
+		std::string sName = ToBackslashes(elem->Attribute("path"));
 		if (elem->Attribute("choice"))
 			outputChoice[sName] = elem->Attribute("choice");
 		else
@@ -47,11 +48,7 @@ int BuildSelection::LoadBuildSelection(XMLElement* srcElement) {
 }
 
 bool BuildSelection::HasOutputPath(const std::string& search) {
-	for (auto& c : outputChoice)
-		if (c.first.compare(search) == 0)
-			return true;
-
-	return false;
+	return outputChoice.find(ToBackslashes(search)) != outputChoice.end();
 }
 
 bool BuildSelection::HasZapChoice(const std::string& project, const std::string& zap) {
@@ -67,18 +64,19 @@ std::map<std::string, std::string> BuildSelection::GetOutputChoices() {
 }
 
 std::string BuildSelection::GetOutputChoice(const std::string& outputPath) {
-	if (!HasOutputPath(outputPath))
+	auto choice = outputChoice.find(ToBackslashes(outputPath));
+	if (choice == outputChoice.end())
 		return "";
 
-	return outputChoice[outputPath];
+	return choice->second;
 }
 
 void BuildSelection::SetOutputChoice(const std::string& outputPath, const std::string& choice) {
-	outputChoice[outputPath] = choice;
+	outputChoice[ToBackslashes(outputPath)] = choice;
 }
 
 void BuildSelection::RemoveOutputChoice(const std::string& outputPath) {
-	outputChoice.erase(outputPath);
+	outputChoice.erase(ToBackslashes(outputPath));
 }
 
 std::map<ZapChoiceKey, bool> BuildSelection::GetZapChoices() {
@@ -210,7 +208,7 @@ int BuildSelectionFile::UpdateOutputChoices(BuildSelection& inBuildSel) {
 		XMLElement* choiceElem = root->FirstChildElement("OutputChoice");
 		while (choiceElem) {
 			const char* attrPath = choiceElem->Attribute("path");
-			if (attrPath && choice.first.compare(attrPath) == 0) {
+			if (attrPath && choice.first == ToBackslashes(attrPath)) {
 				elem = choiceElem;
 				break;
 			}
@@ -266,13 +264,15 @@ int BuildSelectionFile::UpdateZapChoices(BuildSelection& inBuildSel) {
 
 // Removes a single choice from BuildSelection
 void BuildSelectionFile::RemoveOutputChoice(const std::string& path) {
+	const std::string normalizedPath = ToBackslashes(path);
 	XMLElement* elem = root->FirstChildElement("OutputChoice");
 	while (elem) {
-		if (path.compare(elem->Attribute("path")) == 0) {
+		XMLElement* next = elem->NextSiblingElement("OutputChoice");
+		const char* savedPath = elem->Attribute("path");
+		if (savedPath && normalizedPath == ToBackslashes(savedPath)) {
 			root->DeleteChild(elem);
-			return;
 		}
-		elem = elem->NextSiblingElement("OutputChoice");
+		elem = next;
 	}
 }
 
